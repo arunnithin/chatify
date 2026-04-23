@@ -6,6 +6,7 @@ const globalState = {
   activeChat: null,
   messages: [],
   isLoading: false,
+  unreadCounts: {}, // { chatId: count }
 };
 
 const listeners = new Set();
@@ -35,7 +36,10 @@ export default function useChatStore() {
   };
 
   const setActiveChat = (chat) => {
-    setGlobalState({ activeChat: chat, messages: [] });
+    // Clear unread count when opening chat
+    const newCounts = { ...globalState.unreadCounts };
+    delete newCounts[chat._id];
+    setGlobalState({ activeChat: chat, messages: [], unreadCounts: newCounts });
   };
 
   const fetchMessages = async (chatId) => {
@@ -53,6 +57,12 @@ export default function useChatStore() {
     setGlobalState({ messages: [...globalState.messages, message] });
   };
 
+  const incrementUnread = (chatId) => {
+    const newCounts = { ...globalState.unreadCounts };
+    newCounts[chatId] = (newCounts[chatId] || 0) + 1;
+    setGlobalState({ unreadCounts: newCounts });
+  };
+
   const updateChatLastMessage = (chatId, message) => {
     setGlobalState({
       chats: globalState.chats.map(c =>
@@ -68,5 +78,6 @@ export default function useChatStore() {
     fetchMessages,
     addMessage,
     updateChatLastMessage,
+    incrementUnread,
   };
 }

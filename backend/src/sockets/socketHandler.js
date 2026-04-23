@@ -12,25 +12,27 @@ module.exports = (io) => {
       io.emit('user_status_change', { userId, isOnline: true });
     });
 
+    socket.on('join_chat', (chatId) => socket.join(chatId));
+    socket.on('leave_chat', (chatId) => socket.leave(chatId));
 
+    // ⌨️ Typing indicator
+    socket.on('typing_start', ({ chatId, userId, userName }) => {
+      socket.to(chatId).emit('typing_start', { userId, userName });
+    });
 
-    socket.on('leave_chat', (chatId) => {
-      socket.leave(chatId);
+    socket.on('typing_stop', ({ chatId, userId }) => {
+      socket.to(chatId).emit('typing_stop', { userId });
     });
 
     socket.on('send_message', async (data) => {
       try {
         const { chatId, senderId, text, type } = data;
-
         const message = await Message.create({
           chatId, sender: senderId, text, type: type || 'text',
         });
-
         await Chat.findByIdAndUpdate(chatId, { lastMessage: message._id });
-
         const fullMessage = await Message.findById(message._id)
           .populate('sender', 'name profilePic');
-
         io.to(chatId).emit('receive_message', fullMessage);
       } catch (err) {
         console.error('send_message error:', err);
